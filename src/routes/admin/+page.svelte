@@ -11,6 +11,7 @@
   let newQuestionText = '';
   let newOptions = '';
   let questions = [];
+  let recentQuestions = [];
   let responses = [];
   let isCreating = false;
   let questionsUnsubscribe;
@@ -105,6 +106,7 @@
         id: doc.id,
         ...doc.data()
       }));
+      recentQuestions = [...questions].sort((a, b) => toTimeMs(b.activeLast) - toTimeMs(a.activeLast));
     });
 
     // Listen to responses
@@ -168,7 +170,8 @@
         options,
         questionType,
         timestamp: new Date(),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        activeLast: ""
       });
       newQuestionText = '';
       newOptions = '';
@@ -200,6 +203,25 @@
       if(r.val === "no") noAnswers++;
     });
     return { yes: yesAnswers, no: noAnswers, total: qResponses.length };
+  }
+
+  function toTimeMs(value) {
+    if (!value) return 0;
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+      value = value.toDate();
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  }
+
+  function setActive(qid) {
+    console.log("setActive",  qid)
+    updateDoc(doc(db, 'sessions', sessionCode), {
+      activeQuestion: qid,
+    })
+    updateDoc(doc(db, 'sessions', sessionCode, 'questions', qid), {
+      activeLast: new Date().toISOString()
+    })
   }
 
   async function handleExit() {
@@ -288,7 +310,7 @@
         <div class="bg-slate-700 rounded-lg p-6">
           <h2 class="text-2xl font-semibold mb-4">Recent Questions</h2>
           <div class="space-y-3 max-h-96 overflow-y-auto">
-            {#each questions.slice(0, 10) as question (question.id)}
+            {#each recentQuestions.slice(0, 10) as question (question.id)}
               <div class="bg-slate-600 p-3 rounded">
                 <p class="font-semibold">{question.text}</p>
                 <p class="text-sm text-slate-300">Options: {question.options?.join(', ')}</p>
@@ -339,6 +361,12 @@
                   </div>
                 </div>
               {/if}
+            <button
+              onclick={() => setActive(question.id)}
+              class="px-4 py-2 my-3 bg-green-600 rounded hover:cursor-pointer"
+            >
+              Set Active
+            </button>
             </div>
           {/each}
         </div>

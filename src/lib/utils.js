@@ -1,22 +1,13 @@
 import { collection, doc, getDocs, onSnapshot, query, where } from "firebase/firestore"
 
 async function checkIfExists(db, path, field, value) {
-    // onSnapshot(query(collection(db, path)), (snapshot) => {
-    //     if(!snapshot.docs.length === 0) return false;
-    //     snapshot.docs.forEach(doc => {
-    //         
-    //     })
-    //     return false;
-    // });
     let docs = await getDocs(query(collection(db, path), where(field, '==', value)));
-    console.log(docs.docs.length === 0);
     return !(docs.docs.length === 0);
-    // if(docs.empty) return false;
-    // docs.forEach(doc => {
-    //     console.log(doc.get(field))
-    //     if(doc.get(field) === value) return true;
-    // })
-    // return false;
+}
+
+async function checkIfMany(db, path,  fieldA, valueA, fieldB, valueB) {
+    let docs = await getDocs(query(collection(db, path), where(fieldA, '==', valueA), where(fieldB, "==", valueB)));
+    return !(docs.docs.length === 0);
 }
 
 function slugify(string) {
@@ -36,4 +27,4 @@ function formatDate(value) {
 }
 
 
-export { checkIfExists, slugify, capitalize, formatDate }
+export { checkIfExists, checkIfMany, slugify, capitalize, formatDate }
