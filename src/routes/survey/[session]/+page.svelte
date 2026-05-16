@@ -102,7 +102,8 @@
       </div>
     {:else if !currentQuestion}
       <div class="text-center py-20 bg-slate-700 rounded-lg">
-        <p class="text-lg">No active questions at the moment</p>
+        <!-- <p class="text-lg">No active questions at the moment</p> -->
+        <p class="text-lg"> 👀 Eyes Up! 👀 <br /> No active questions at the moment</p>
       </div>
     {:else}
       <div class="bg-slate-700 rounded-lg p-8 shadow-lg">

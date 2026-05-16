@@ -304,6 +304,17 @@
           >
             {isCreating ? 'Creating...' : 'Create Question'}
           </button>
+
+          <hr class="px-3 mt-5 mb-5" />
+
+          <button
+            onclick={() => setActive("")}
+            disabled={isCreating}
+            class="w-full cursor-pointer bg-orange-400 hover:bg-orange -500 disabled:bg-slate-500 px-6 py-2 rounded font-semibold transition"
+          >
+            Clear Active
+          </button>
+
         </div>
 
         <!-- Recent Questions Section -->

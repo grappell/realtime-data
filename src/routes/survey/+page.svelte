@@ -22,7 +22,6 @@
     checking = true;
     
     try {
-      console.log("try")
       let docs = await getDocs(query(collection(db, "sessions"), where("sessionName", "==", sessionGuess)))
       if(docs.empty){
         validSession = false;
