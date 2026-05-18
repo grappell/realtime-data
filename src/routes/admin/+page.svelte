@@ -222,23 +222,18 @@
 
   function getResponseStats(questionId) {
     const qResponses = responses.filter(r => r.questionId === questionId);
-    console.log("Response Questions", qResponses)
     const stats = {};
     qResponses.forEach(r => {
       stats[r.answer] = (stats[r.answer] || 0) + 1;
     });
-    console.log("stats func",  stats)
     return stats;
   }
 
   function getYesNoStats(questionId) {
-    console.log("yE NO STATS")
     const qResponses = responses.filter(r => r.questionId === questionId);
-    console.log(responses, qResponses)
     let yesAnswers = 0;
     let noAnswers = 0;
     qResponses.forEach(r => {
-      console.log(r)
       if(r.answer === "Yes") yesAnswers++;
       if(r.answer === "No") noAnswers++;
     });
@@ -255,7 +250,7 @@
   }
 
   function setActive(qid) {
-    console.log("setActive", qid)
+    // console.log("setActive", qid)
     updateDoc(doc(db, 'sessions', sessionCode), {
       activeQuestion: qid,
     })
@@ -273,13 +268,14 @@
     })
     isInSession = false;
     sessionCode = "";
+    sessionName = "";
     handleHomepageStart();
   }
 </script>
 
 <div class="w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 p-10 text-white">
   <div class="max-w-6xl mx-auto">
-    <h1 class="text-4xl font-bold mb-10 text-center">Dashboard: {sessionName ? sessionName : "Loading"}</h1>
+    <h1 class="text-4xl font-bold mb-10 text-center">{sessionName ? "Dashboard: " + sessionName : "Survey Admin"}</h1>
 
     {#if !isInSession || sessionCode === ""}
       <div class="w-[50vw] m-auto flex flex-col justify-center">
