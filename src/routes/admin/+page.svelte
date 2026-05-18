@@ -274,13 +274,12 @@
 
   async function clearRes() {
     await deleteCollection(db, "sessions/" + sessionCode + "/responses")
-      .then(() => alert("Successfully Deleted"))
       .catch(e => console.error(e));
   }
 
 </script>
 
-<div class="w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 p-10 text-white">
+<div class="max-w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 p-10 text-white">
   <div class="max-w-6xl mx-auto">
     <h1 class="text-4xl font-bold mb-10 text-center">{sessionName ? "Dashboard: " + sessionName : "Survey Admin"}</h1>
 
