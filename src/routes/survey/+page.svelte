@@ -13,6 +13,7 @@
 
   onMount(() => {
     name = sessionStorage.getItem("username");
+    sessionGuess = sessionStorage.getItem("sessionGuess")
   })
 
   async function checkAndNavigate() {
@@ -20,6 +21,7 @@
     if (!sessionGuess && !name) return;
     validSession = true;
     checking = true;
+    sessionGuess = sessionGuess.toLocaleLowerCase();
     
     try {
       let docs = await getDocs(query(collection(db, "sessions"), where("sessionName", "==", sessionGuess)))

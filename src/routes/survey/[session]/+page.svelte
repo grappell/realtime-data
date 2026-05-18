@@ -39,24 +39,34 @@
         id: doc.id,
         ...doc.data()
       }));
+
       loading = false;
 
       if (currentQuestion?.questionType === "rating" && !selectedAnswer) {
         selectedAnswer = '1';
       }
+
     });
 
     const sessionRef = doc(db, "sessions",  sessionId)
     sessionUnsubscribe = onSnapshot(query(sessionRef), async (snap) => {
+
       let data = snap.data();
       sessionName = data.sessionName;
       alreadyAnswered = await checkIfMany(db, "sessions/" + sessionId + "/responses", "questionId", data.activeQuestion, "userCode", userCode)
       activeQuestionId = data.activeQuestion;
       currentQuestion = questions.find(q => q.id === activeQuestionId)
       submitted = false;
+      
       if (currentQuestion?.questionType === "rating") {
         selectedAnswer = selectedAnswer || '1';
       }
+
+      if(!userCode) {
+        sessionStorage.setItem("sessionGuess", sessionName);
+        goto("/survey")
+      }
+
     })
 
     return () => {
