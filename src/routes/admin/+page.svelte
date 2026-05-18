@@ -4,7 +4,7 @@
   import { db } from '$lib/firebase.js';
   import { collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
 	import { fa, faker } from '@faker-js/faker';
-	import { capitalize, checkIfExists, formatDate, slugify } from '$lib/utils';
+	import { capitalize, checkIfExists, deleteCollection, formatDate, slugify } from '$lib/utils';
 
   let sessionCode = '';
   let sessionName = "";
@@ -271,6 +271,13 @@
     sessionName = "";
     handleHomepageStart();
   }
+
+  async function clearRes() {
+    await deleteCollection(db, "sessions/" + sessionCode + "/responses")
+      .then(() => alert("Successfully Deleted"))
+      .catch(e => console.error(e));
+  }
+
 </script>
 
 <div class="w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 p-10 text-white">
@@ -444,10 +451,16 @@
         </div>
       </div>
 
-      <button
-        onclick={handleExit}
-        class="mt-8 block mx-auto bg-red-600 hover:bg-red-500 px-6 py-2 rounded font-semibold transition"
-      >Exit</button>
+      <div class="flex justify-around gap-20">
+        <button
+          onclick={handleExit}
+          class="mt-8 w-full block mx-auto bg-red-600 hover:bg-red-500 px-6 py-2 rounded font-semibold transition"
+        >Exit</button>
+        <button
+          onclick={clearRes}
+          class="mt-8 w-full block mx-auto bg-purple-600 hover:bg-red-500 px-6 py-2 rounded font-semibold transition"
+        >Clear Responses</button>
+      </div>
     {/if}
   </div>
 </div>

@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, onSnapshot, query, where } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, where } from "firebase/firestore"
 
 async function checkIfExists(db, path, field, value) {
     let docs = await getDocs(query(collection(db, path), where(field, '==', value)));
@@ -26,5 +26,17 @@ function formatDate(value) {
     return value.toLocaleString();
 }
 
+async function deleteCollection(db, collectionPath) {
 
-export { checkIfExists, checkIfMany, slugify, capitalize, formatDate }
+  const collectionRef = collection(db, collectionPath);
+  const querySnapshot = await getDocs(collectionRef);
+
+  const deletePromises = querySnapshot.docs.map((document) => 
+    deleteDoc(doc(db, collectionPath, document.id))
+  );
+
+  await Promise.all(deletePromises);
+}
+
+
+export { checkIfExists, checkIfMany, slugify, capitalize, formatDate, deleteCollection }

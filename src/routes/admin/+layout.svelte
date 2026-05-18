@@ -15,7 +15,7 @@
         }
 
         const handleKeyDown = (e) => {
-            if (e.shiftKey && e.key === 'Q') {
+            if (e.altKey && e.key === 'q') {
                 handleLogout();
             }
         };
