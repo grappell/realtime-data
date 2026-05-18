@@ -7,6 +7,7 @@
 	import { goto } from '$app/navigation';
 	import { getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 	import { checkIfExists, checkIfMany } from '$lib/utils';
+	import { fa } from '@faker-js/faker';
 
   $: sessionId = $page.params.session;
 
@@ -39,6 +40,10 @@
         ...doc.data()
       }));
       loading = false;
+
+      if (currentQuestion?.questionType === "rating" && !selectedAnswer) {
+        selectedAnswer = '1';
+      }
     });
 
     const sessionRef = doc(db, "sessions",  sessionId)
@@ -48,6 +53,10 @@
       alreadyAnswered = await checkIfMany(db, "sessions/" + sessionId + "/responses", "questionId", data.activeQuestion, "userCode", userCode)
       activeQuestionId = data.activeQuestion;
       currentQuestion = questions.find(q => q.id === activeQuestionId)
+      submitted = false;
+      if (currentQuestion?.questionType === "rating") {
+        selectedAnswer = selectedAnswer || '1';
+      }
     })
 
     return () => {
@@ -68,7 +77,7 @@
       const responsesRef = collection(db, "sessions", sessionId, 'responses');
       await addDoc(responsesRef, {
         questionId: activeQuestionId,
-        answer: selectedAnswer,
+        answer: currentQuestion?.questionType === "rating" ? Number(selectedAnswer) : selectedAnswer,
         userCode: userCode,
         timestamp: new Date(),
       });
@@ -113,26 +122,62 @@
 
           {#if submitted || alreadyAnswered}
             <div class="bg-green-600 p-4 rounded text-center font-semibold mb-6">
-              ✓ Response {alreadyAnswered ? "already answered" : "submitted successfully!"}
+              ✓ Response {alreadyAnswered ? "already recorded" : "submitted successfully!"}
             </div>
           {/if}
 
-          <!-- Answer Options -->
-          <div class="space-y-3 mb-6">
-            {#each currentQuestion.options || [] as option (option)}
-              <label class="flex items-center p-4 bg-slate-600 hover:bg-slate-500 rounded cursor-pointer transition">
-                <input
-                  type="radio"
-                  name="answer"
-                  value={option}
-                  bind:group={selectedAnswer}
-                  class="w-4 h-4 mr-3"
-                  disabled={submitted}
-                />
-                <span class="text-lg">{option}</span>
+          {#if currentQuestion.questionType === "labeled"}
+            <!-- Answer Options -->
+            <div class="space-y-3 mb-6">
+              {#each currentQuestion.options || [] as option (option)}
+                <label class="flex items-center p-4 bg-slate-600 hover:bg-slate-500 rounded cursor-pointer transition">
+                  <input
+                    type="radio"
+                    name="answer"
+                    value={option}
+                    bind:group={selectedAnswer}
+                    class="w-4 h-4 mr-3"
+                    disabled={submitted || alreadyAnswered}
+                  />
+                  <span class="text-lg">{option}</span>
+                </label>
+              {/each}
+            </div>
+          {:else if currentQuestion.questionType === "rating"}
+            <div class="mb-6 space-y-4 rounded-lg bg-slate-600 p-5">
+              <div class="flex items-center justify-between text-sm text-slate-300">
+                <span>1</span>
+                <span class="font-semibold text-white">{selectedAnswer}</span>
+                <span>10</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                bind:value={selectedAnswer}
+                class="w-full accent-green-500"
+                disabled={submitted || alreadyAnswered}
+              />
+              <p class="text-center text-sm text-slate-300">Select a rating between 1 and 10</p>
+            </div>
+          {:else if currentQuestion.questionType === "yesno"}
+            <div class="mb-6 flex flex-row w-full justify-center gap-3 not-sm:flex-col">
+              {#each currentQuestion.options || [] as option (option)}
+                <label class="flex w-full items-center p-4 bg-slate-600 hover:bg-slate-500 rounded cursor-pointer transition">
+                  <input
+                    type="radio"
+                    name="answer"
+                    value={option}
+                    bind:group={selectedAnswer}
+                    class="w-4 h-4 mr-3"
+                    disabled={submitted || alreadyAnswered}
+                  />
+                  <span class="text-lg">{option}</span>
               </label>
-            {/each}
-          </div>
+              {/each}
+            </div>
+          {/if}
 
           <!-- User Code Input -->
           <!-- <div class="mb-6">

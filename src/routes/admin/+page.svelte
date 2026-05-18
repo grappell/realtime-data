@@ -2,11 +2,12 @@
 <script>
   import { onMount } from 'svelte';
   import { db } from '$lib/firebase.js';
-  import { collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-	import { faker } from '@faker-js/faker';
+  import { collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
+	import { fa, faker } from '@faker-js/faker';
 	import { capitalize, checkIfExists, formatDate, slugify } from '$lib/utils';
 
   let sessionCode = '';
+  let sessionName = "";
   let isInSession = false;
   let newQuestionText = '';
   let newOptions = '';
@@ -21,11 +22,14 @@
   let existingSessions = {};
   let questionType = "labeled";
 
+  let yesNoStats = {};
+  let labeledStats = {};
+  let statsLoaded = false;
+
   onMount(() => {
 
     handleHomepageStart();
-    console.log(sessionCode)
-    
+
     return () => {
       if (questionsUnsubscribe) questionsUnsubscribe();
       if (responsesUnsubscribe) responsesUnsubscribe();
@@ -63,9 +67,7 @@
         sessionName: await createSessionTitle(),
         activeQuestion: "",
       });
-        console.log(docRef)
-        console.log(docRef.id)
-        setSession(docRef.id)
+      setSession(docRef.id)
     } catch (error) {
       console.error('Error creating session:', error);
       alert('Failed to create session');
@@ -80,6 +82,10 @@
     sessionCode = id;
     isInSession = true;
     loadData(id);
+
+    getDoc(doc(db, "sessions", sessionCode)).then(doc => {
+      sessionName = doc.data().sessionName
+    })
   }
 
   async function deleteSession(id) {
@@ -104,9 +110,11 @@
     questionsUnsubscribe = onSnapshot(questionsQuery, (snapshot) => {
       questions = snapshot.docs.map(doc => ({
         id: doc.id,
+        stats: doc.data().questionType === "yesno" ? getYesNoStats(doc.id) : doc.data().questionType === "labeled" ? getResponseStats(doc.id) : getRatingStats(doc.id),
         ...doc.data()
       }));
       recentQuestions = [...questions].sort((a, b) => toTimeMs(b.activeLast) - toTimeMs(a.activeLast));
+      statsLoaded = true;
     });
 
     // Listen to responses
@@ -117,6 +125,12 @@
         id: doc.id,
         ...doc.data()
       }));
+      questions = questions.map(q => {
+        return {
+          ...q,
+          stats: q.questionType === "yesno" ? getYesNoStats(q.id) : q.questionType === "labeled" ? getResponseStats(q.id) : getRatingStats(q.id),
+        }
+      })
     });
 
   }
@@ -140,7 +154,7 @@
           break;
       
         case "yesno":
-          options = ["Yes / No"]
+          options = ["Yes", "No"]
           return !newQuestionText.trim()
           break;
          
@@ -183,24 +197,50 @@
     }
   }
 
+  function getRatingStats(questionId) {
+    const qResponses = responses.filter(r => r.questionId === questionId);
+    const ratings = qResponses
+      .map(r => Number(r.answer))
+      .filter(rating => Number.isFinite(rating) && rating >= 1 && rating <= 10);
+
+    const buckets = Array.from({ length: 10 }, (_, index) => {
+      const rating = index + 1;
+      return {
+        rating,
+        count: ratings.filter(value => value === rating).length
+      };
+    });
+
+    const total = ratings.length;
+    const average = total > 0
+      ? ratings.reduce((sum, rating) => sum + rating, 0) / total
+      : 0;
+    const maxCount = buckets.reduce((max, bucket) => Math.max(max, bucket.count), 0);
+
+    return { buckets, total, average, maxCount };
+  }
+
   function getResponseStats(questionId) {
     const qResponses = responses.filter(r => r.questionId === questionId);
+    console.log("Response Questions", qResponses)
     const stats = {};
     qResponses.forEach(r => {
       stats[r.answer] = (stats[r.answer] || 0) + 1;
     });
+    console.log("stats func",  stats)
     return stats;
   }
 
   function getYesNoStats(questionId) {
+    console.log("yE NO STATS")
     const qResponses = responses.filter(r => r.questionId === questionId);
     console.log(responses, qResponses)
     let yesAnswers = 0;
     let noAnswers = 0;
     qResponses.forEach(r => {
       console.log(r)
-      if(r.val === "yes") yesAnswers++;
-      if(r.val === "no") noAnswers++;
+      if(r.answer === "Yes") yesAnswers++;
+      if(r.answer === "No") noAnswers++;
     });
     return { yes: yesAnswers, no: noAnswers, total: qResponses.length };
   }
@@ -215,13 +255,15 @@
   }
 
   function setActive(qid) {
-    console.log("setActive",  qid)
+    console.log("setActive", qid)
     updateDoc(doc(db, 'sessions', sessionCode), {
       activeQuestion: qid,
     })
-    updateDoc(doc(db, 'sessions', sessionCode, 'questions', qid), {
-      activeLast: new Date().toISOString()
-    })
+    if(qid != "") {
+      updateDoc(doc(db, 'sessions', sessionCode, 'questions', qid), {
+        activeLast: new Date().toISOString()
+      })
+    }
   }
 
   async function handleExit() {
@@ -237,7 +279,7 @@
 
 <div class="w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 p-10 text-white">
   <div class="max-w-6xl mx-auto">
-    <h1 class="text-4xl font-bold mb-10 text-center">Survey Admin Dashboard</h1>
+    <h1 class="text-4xl font-bold mb-10 text-center">Dashboard: {sessionName ? sessionName : "Loading"}</h1>
 
     {#if !isInSession || sessionCode === ""}
       <div class="w-[50vw] m-auto flex flex-col justify-center">
@@ -334,21 +376,38 @@
       <!-- Responses Section -->
       <div class="mt-8 bg-slate-700 rounded-lg p-6">
         <h2 class="text-2xl font-semibold mb-4">Responses Summary</h2>
-        <div class="space-y-4 max-h-96 overflow-y-auto">
-          {#each questions.slice(0, 5) as question (question.id)}
+        <div class="space-y-4 max-h-dvh overflow-y-auto">
+          {#each questions as question (question.id)}
             {@const totalResponses = responses.filter(r => r.questionId === question.id).length}
             <div class="bg-slate-600 p-4 rounded">
               <p class="font-semibold mb-2">{question.text}</p>
               <p class="text-sm text-slate-300 mb-3">Total Responses: {totalResponses}</p>
               {#if question.questionType === "rating"}
-                <div class="space-y-1 text-sm">
-                  <p>See rankings</p>
+                <div class="space-y-4 text-sm mb-3">
+                  <div class="flex items-center justify-between text-slate-300">
+                    <p>Average: {question.stats.average ? question.stats.average.toFixed(1) : '0.0'}/10</p>
+                    <p>Most selected rating is highlighted</p>
+                  </div>
+                  <div class="space-y-2 px-3">
+                    {#each question.stats.buckets || [] as bucket}
+                      {@const percentage = question.stats.total > 0 ? ((bucket.count / question.stats.total) * 100).toFixed(1) : '0.0'}
+                      <div class="flex items-center gap-3">
+                        <span class="w-8 text-right text-slate-300">{bucket.rating}</span>
+                        <div class="h-4 flex-1 rounded-full bg-slate-500 overflow-hidden">
+                          <div
+                            class={`h-full rounded-full transition-all ${bucket.count > 0 && bucket.count === question.stats.maxCount ? 'bg-amber-400' : 'bg-green-500'}`}
+                            style={`width: ${question.stats.maxCount > 0 ? (bucket.count / question.stats.maxCount) * 100 : 0}%`}
+                          ></div>
+                        </div>
+                        <span class="w-16 text-right text-slate-300">{bucket.count} ({percentage}%)</span>
+                      </div>
+                    {/each}
+                  </div>
                 </div>
-              {:else if question.questionType === "labeled"}
-                {@const stats = getResponseStats(question.id)}
+              {:else if question.questionType === "labeled" && Object.keys(question.stats).length != 0}
                 <div class="space-y-1 text-sm">
                   {#each question.options || [] as option}
-                    {@const count = stats[option] || 0}
+                    {@const count = question.stats[option] || 0}
                     {@const percentage = totalResponses > 0 ? ((count / totalResponses) * 100).toFixed(1) : 0}
                     <div class="flex justify-between">
                       <span>{option}: {count}</span>
@@ -356,19 +415,25 @@
                     </div>
                   {/each}
                 </div>    
-              {:else if question.questionType === "yesno"}
-                {@const stats = getYesNoStats(question.id)}
-                {@const yesPercentage = stats.total > 0 ? (stats.yes / stats.total) * 100 : 0}
+              {:else if question.questionType === "yesno" && Object.keys(question.stats).length != 0}
                 <div class="space-y-1 text-sm">
                   <div class="flex justify-between text-slate-300 mb-1">
-                    <span>Yes: {stats.yes}</span>
-                    <span>No: {stats.no}</span>
+                    <span>Yes: {question.stats.yes}</span>
+                    <span>No: {question.stats.no}</span>
                   </div>
                   <div class="w-full h-4 bg-slate-500 rounded-full overflow-hidden">
                     <div
                       class="h-full bg-green-500 transition-all"
-                      style={`width: ${yesPercentage}%`}
+                      style={`width: ${question.stats.total > 0 ? (question.stats.yes / question.stats.total) * 100 : 0}%`}
                     ></div>
+                  </div>
+                  <div class="flex justify-between mb-3">
+                    <p>
+                      {question.stats.total > 0 ? Math.round((question.stats.yes / question.stats.total) * 100) + "%" : "N/A"}
+                    </p>
+                    <p>
+                      {question.stats.total > 0 ? Math.round((question.stats.no / question.stats.total) * 100) + "%" : "N/A"}
+                    </p>
                   </div>
                 </div>
               {/if}
