@@ -51,7 +51,7 @@
 {#if isLoggedIn}
     {@render children()}
 {:else}
-    <div class="w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+    <div class="max-w-dvw min-h-dvh bg-linear-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
         <div class="w-full max-w-md">
             <div class="bg-slate-700 rounded-lg p-8 shadow-lg">
                 <h1 class="text-3xl font-bold mb-8 text-center text-white">Admin Login</h1>
