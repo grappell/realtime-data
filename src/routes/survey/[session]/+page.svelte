@@ -57,7 +57,7 @@
       activeQuestionId = data.activeQuestion;
       currentQuestion = questions.find(q => q.id === activeQuestionId)
       submitted = false;
-      
+
       if (currentQuestion?.questionType === "rating") {
         selectedAnswer = selectedAnswer || '1';
       }
@@ -102,6 +102,7 @@
   }
 
   async function exitSession() {
+    sessionStorage.setItem("sessionGuess", "");
     await goto("/survey")
   }
 </script>
