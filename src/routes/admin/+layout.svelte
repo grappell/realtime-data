@@ -84,10 +84,6 @@
 {/if}
 <style>
     :global(html, body) {
-        margin: 0;
-        padding: 0;
         background: linear-gradient(to bottom right, rgb(15, 23, 42), rgb(30, 41, 59));
-        min-height: 100vh;
-        width: 100vw;
     }
 </style>
