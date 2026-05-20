@@ -106,7 +106,7 @@
   async function loadData(id) {
 
     const questionsRef = collection(db, 'sessions/' + id + "/questions");
-    const questionsQuery = query(questionsRef, orderBy('timestamp', 'desc'));
+    const questionsQuery = query(questionsRef, orderBy("text", "asc"));
     questionsUnsubscribe = onSnapshot(questionsQuery, (snapshot) => {
       questions = snapshot.docs.map(doc => ({
         id: doc.id,
