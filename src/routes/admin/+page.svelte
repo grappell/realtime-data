@@ -117,7 +117,6 @@
       statsLoaded = true;
     });
 
-    // Listen to responses
     const responsesRef = collection(db, 'sessions/' + id + '/responses');
     const responsesQuery = query(responsesRef);
     responsesUnsubscribe = onSnapshot(responsesQuery, (snapshot) => {
