@@ -106,3 +106,4 @@ bun run preview
 
 - The app stores the current participant name, room code, and admin login state in `sessionStorage`.
 - Answers are written to Firestore as the session runs, so the admin and participant views stay synchronized without page refreshes.
+- Currently not working, due to firebase permissions
